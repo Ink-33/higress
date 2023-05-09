@@ -26,10 +26,24 @@ jobs:
     - name: Setup Golang Caches
       uses: actions/cache@v3
       with:
-        path: |
+        path: |-
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-golang
+        key: ${{ runner.os }}-covtest-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-covtest
+
+    - name: Setup Submodule Caches
+      uses: actions/cache@v3
+      with:
+        path: |-
+            envoy
+            istio
+            external
+            .git/modules
+        key: ${{ runner.os }}-submodules-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-submodules
+    
+    - run: git stash # restore patch
 
     # test
     - name: Run Coverage Tests
@@ -46,6 +60,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint,coverage-test]
     steps:
+      - name: "Checkout ${{ github.ref }}"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
       - name: "Setup Go"
         uses: actions/setup-go@v3
         with:
@@ -54,15 +73,24 @@ jobs:
       - name: Setup Golang Caches
         uses: actions/cache@v3
         with:
-          path: |
+          path: |-
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-golang
+          key: ${{ runner.os }}-build-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-build
 
-      - name: "checkout ${{ github.ref }}"
-        uses: actions/checkout@v3
+      - name: Setup Submodule Caches
+        uses: actions/cache@v3
         with:
-          fetch-depth: 2
+          path: |-
+            envoy
+            istio
+            external
+            .git/modules
+          key: ${{ runner.os }}-submodules-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-submodules
+
+      - run: git stash # restore patch
 
       - name: "Build Higress Binary"
         run: GOPROXY="https://proxy.golang.org,direct" make build
@@ -83,6 +111,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
+    - uses: actions/checkout@v3
+      
     - name: "Setup Go"
       uses: actions/setup-go@v3
       with:
@@ -91,15 +121,29 @@ jobs:
     - name: Setup Golang Caches
       uses: actions/cache@v3
       with:
-        path: |
+        path: |-
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-golang
+        key: ${{ runner.os }}-ingresstest-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-ingresstest
+      
+    - name: Setup Submodule Caches
+      uses: actions/cache@v3
+      with:
+        path: |-
+            envoy
+            istio
+            external
+            .git/modules
+        key: ${{ runner.os }}-submodules-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-submodules
+          
+    - run: git stash # restore patch
 
-    - uses: actions/checkout@v3
     - name: "Run Ingress Conformance Tests"
       run: GOPROXY="https://proxy.golang.org,direct" make ingress-conformance-test
-
+      
   publish:
     runs-on: ubuntu-latest
     needs: [ingress-conformance-test,gateway-conformance-test]
