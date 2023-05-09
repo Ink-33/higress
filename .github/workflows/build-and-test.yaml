@@ -23,6 +23,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Setup Golang Caches
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-golang
+
     # test
     - name: Run Coverage Tests
       run: GOPROXY="https://proxy.golang.org,direct" make go.test.coverage
@@ -42,6 +50,14 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
+
+      - name: Setup Golang Caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-golang
 
       - name: "checkout ${{ github.ref }}"
         uses: actions/checkout@v3
@@ -71,6 +87,15 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: 1.19
+
+    - name: Setup Golang Caches
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-golang
+
     - uses: actions/checkout@v3
     - name: "Run Ingress Conformance Tests"
       run: GOPROXY="https://proxy.golang.org,direct" make ingress-conformance-test
